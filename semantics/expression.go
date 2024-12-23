@@ -1,14 +1,14 @@
 package semantics
 
 type Visitor interface {
-	visitBinaryExpression(b *Binary) Binary
-	visitGroupingExpression(g *Grouping) Grouping
-	visitLiteralExpression(l *Literal) Literal
-	visitUnaryExpression(u *Unary) Unary
+	visitBinaryExpression(b *Binary) interface{}
+	visitGroupingExpression(g *Grouping) interface{}
+	visitLiteralExpression(l *Literal) interface{}
+	visitUnaryExpression(u *Unary) interface{}
 }
 
 type Expression interface {
-	accept(visitor Visitor) interface{}
+	Accept(visitor Visitor) interface{}
 }
 
 type Binary struct {
@@ -25,7 +25,7 @@ func InitBinary(left Expression, operator Token, right Expression) *Binary {
 	}
 }
 
-func (b *Binary) accept(visitor Visitor) Binary {
+func (b *Binary) Accept(visitor Visitor) interface{} {
 	return visitor.visitBinaryExpression(b)
 }
 
@@ -33,7 +33,7 @@ type Grouping struct {
 	expression Expression
 }
 
-func (g *Grouping) accept(visitor Visitor) Grouping {
+func (g *Grouping) Accept(visitor Visitor) interface{} {
 	return visitor.visitGroupingExpression(g)
 }
 
@@ -47,7 +47,7 @@ type Literal struct {
 	value interface{}
 }
 
-func (l *Literal) accept(visitor Visitor) Literal {
+func (l *Literal) Accept(visitor Visitor) interface{} {
 	return visitor.visitLiteralExpression(l)
 }
 
@@ -62,7 +62,7 @@ type Unary struct {
 	right    Expression
 }
 
-func (u *Unary) accept(visitor Visitor) Unary {
+func (u *Unary) Accept(visitor Visitor) interface{} {
 	return visitor.visitUnaryExpression(u)
 }
 

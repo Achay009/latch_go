@@ -6,21 +6,23 @@ import (
 	"log"
 	"os"
 	"scoop/components"
+	"scoop/semantics"
 )
 
+var HadError bool = false
+var HadRuntimeError bool = false
+
 type Scoop struct {
-	hadError        bool
-	hadRuntimeError bool
 }
 
 func (s *Scoop) runPrompt() {
 	reader := bufio.NewScanner(os.Stdin)
 	for {
-		fmt.Print(">")
+		fmt.Print("\n>")
 		reader.Scan()
 		line := reader.Text()
 		s.run(line)
-		s.hadError = false
+		HadError = false
 	}
 }
 
@@ -32,12 +34,12 @@ func (s *Scoop) runFile(path string) {
 		os.Exit(65)
 	}
 	s.run(string(bytes))
-	if s.hadError {
+	if HadError {
 		log.Fatal("Errors occured while running...")
 		os.Exit(65)
 	}
 
-	if s.hadRuntimeError {
+	if HadRuntimeError {
 		log.Fatal("Runtime Errors occured while running...")
 		os.Exit(70)
 	}
@@ -51,18 +53,40 @@ func (s *Scoop) run(source string) {
 	tokens := scanner.ScanTokens()
 	parser := components.InitParser(tokens)
 
-	if s.hadError {
+	expression, err := parser.Parse()
+
+	if err != nil {
+		fmt.Printf("Error from Parser  : %v", err.Error())
+	}
+
+	interpreter := semantics.InitInterpreter()
+
+	interpreter.Interprete(expression)
+
+	printer := semantics.InitAbstractSyntaxTreePrinter()
+
+	if HadError {
 		return
 	}
+
+	fmt.Printf("Expression Tree : %v", printer.Print(expression))
 }
 
-func (s *Scoop) report(line int, where string, message string) {
+func Report(line int, where string, message string) {
 	fmt.Printf("[line %v] Error %v : %v", line, where, message)
-	s.hadError = true
+	HadError = true
 }
 
-func (s *Scoop) error(line int, message string) {
-	s.report(line, "", message)
+func Error(line int, message string) {
+	Report(line, "", message)
+}
+
+func PrintError(token semantics.Token, message string) {
+	if token.TokenType == semantics.EOF {
+		Report(token.Line, " at end", message)
+	} else {
+		Report(token.Line, " at "+token.Lexeme+"'", message)
+	}
 }
 
 func main() {
