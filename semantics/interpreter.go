@@ -2,6 +2,7 @@ package semantics
 
 import (
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -25,9 +26,21 @@ func (p *Interpreter) error(token Token, message string) error {
 	return &RuntimeError{token: token, message: message}
 }
 
-func (p *Interpreter) Interprete(expr Expression) {
-	value := p.evaluate(expr)
-	fmt.Printf(p.stringify(value) + "\n")
+// for single expression
+// func (p *Interpreter) Interprete(expr Expression) {
+// 	value := p.evaluate(expr)
+// 	fmt.Printf(p.stringify(value) + "\n")
+// }
+
+func (p *Interpreter) Interprete(expr []Statement) {
+	log.Println("\ninside interpreter now...")
+	for _, statement := range expr {
+		p.execute(statement)
+	}
+}
+
+func (p *Interpreter) execute(statement Statement) {
+	statement.Accept(p)
 }
 
 func (p *Interpreter) stringify(objectA interface{}) string {
@@ -44,6 +57,18 @@ func (p *Interpreter) stringify(objectA interface{}) string {
 	}
 
 	return fmt.Sprintf("%v", objectA)
+}
+
+func (p *Interpreter) visitExpressionStatement(exprStatement *ExpressionStatement) interface{} {
+	p.evaluate(exprStatement.Expr)
+	// fmt.Print(">>" + p.stringify(value) + "\n")
+	return nil
+}
+
+func (p *Interpreter) visitPrintStatement(printStatement *Print) interface{} {
+	value := p.evaluate(printStatement.Expr)
+	fmt.Print(">>" + p.stringify(value) + "\n")
+	return nil
 }
 
 func (p *Interpreter) visitLiteralExpression(litExpr *Literal) interface{} {
@@ -134,7 +159,7 @@ func (p *Interpreter) checkNumberOperands(operator Token, operandA interface{}, 
 		panic(p.error(operator, "Operator must be a numbers"))
 	}
 
-	if _, ok2 := operandA.(float64); !ok2 {
+	if _, ok2 := operandB.(float64); !ok2 {
 		panic(p.error(operator, "Operator must be a numbers"))
 	}
 }

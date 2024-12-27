@@ -18,7 +18,7 @@ type Scoop struct {
 func (s *Scoop) runPrompt() {
 	reader := bufio.NewScanner(os.Stdin)
 	for {
-		fmt.Print("\n>")
+		fmt.Print("\nscoop>> ")
 		reader.Scan()
 		line := reader.Text()
 		s.run(line)
@@ -53,23 +53,26 @@ func (s *Scoop) run(source string) {
 	tokens := scanner.ScanTokens()
 	parser := components.InitParser(tokens)
 
-	expression, err := parser.Parse()
+	// expression, err := parser.Parse()
+	statement, err := parser.Parse()
+	// log.Println("Done with parsing ")
+	fmt.Print(fmt.Sprintf("\nstatements from Parse : %+v", statement))
 
 	if err != nil {
-		fmt.Printf("Error from Parser  : %v", err.Error())
+		log.Print(fmt.Sprintf("Error from Parser  : %v", err.Error()))
 	}
-
-	interpreter := semantics.InitInterpreter()
-
-	interpreter.Interprete(expression)
-
-	printer := semantics.InitAbstractSyntaxTreePrinter()
 
 	if HadError {
 		return
 	}
 
-	fmt.Printf("Expression Tree : %v", printer.Print(expression))
+	interpreter := semantics.InitInterpreter()
+
+	interpreter.Interprete(statement)
+
+	// printer := semantics.InitAbstractSyntaxTreePrinter()
+
+	// fmt.Printf("Expression Tree : %v", printer.Print(expression))
 }
 
 func Report(line int, where string, message string) {

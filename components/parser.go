@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"log"
 	"scoop/semantics"
 )
 
@@ -53,7 +54,7 @@ type parseError struct {
 }
 
 func (e *parseError) Error() string {
-	return fmt.Sprintf("Parse error at %v: %s", e.token, e.message)
+	return fmt.Sprintf("Parse error at %+v: %s", e.token, e.message)
 }
 
 func (p *Parser) error(token semantics.Token, message string) error {
@@ -67,18 +68,66 @@ func InitParser(tokens []semantics.Token) *Parser {
 	}
 }
 
-func (p *Parser) Parse() (semantics.Expression, error) {
+// func (p *Parser) Parse() (semantics.Expression, error) {
+// 	defer func() {
+// 		if err := recover(); err != nil {
+// 			if parseError, ok := err.(*parseError); ok {
+// 				panic(parseError) // already handled
+// 			}
+// 			panic(err)
+// 		}
+// 	}()
+
+// 	expression := p.expression()
+// 	return expression, nil
+// }
+
+func (p *Parser) Parse() ([]semantics.Statement, error) {
+	statements := []semantics.Statement{}
 	defer func() {
 		if err := recover(); err != nil {
-			if parseError, ok := err.(*parseError); ok {
-				panic(parseError) // already handled
+			if p, ok := err.(*parseError); ok {
+				log.Println(p.Error())
+				return
+				// panic(p.Error())
+				// return // already handled
 			}
-			panic(err)
+			panic(err.(error).Error())
 		}
 	}()
 
-	expression := p.expression()
-	return expression, nil
+	for !p.isAtEnd() {
+		statements = append(statements, p.statement())
+	}
+
+	fmt.Print(fmt.Sprintf("\nstatements in Parse : %+v", statements))
+
+	// expression := p.expression()
+	return statements, nil
+}
+
+func (p *Parser) statement() semantics.Statement {
+	if p.match(semantics.PRINT) {
+		log.Println("\nInside PRINT STATEMENT")
+		return p.printStatement()
+	}
+
+	return p.expressionStatement()
+}
+
+func (p *Parser) printStatement() semantics.Statement {
+	expr := p.expression()
+	// log.Printf("inside PRINT RULE [%v]", fmt.Sprint(expr))
+	fmt.Printf(fmt.Sprintf("\ninside PRINT RULE [%+v]\n", expr))
+	p.consume(semantics.SEMICOLON, "Expect ';' after value")
+	return semantics.InitPrintStatement(expr)
+}
+
+func (p *Parser) expressionStatement() semantics.Statement {
+	expr := p.expression()
+	fmt.Printf(fmt.Sprintf("\ninside EXPR RULE [%+v]\n", expr))
+	p.consume(semantics.SEMICOLON, "Expect ';' after expression")
+	return semantics.InitExpressionStatement(expr)
 }
 
 func (p *Parser) expression() semantics.Expression {
@@ -150,7 +199,7 @@ func (p *Parser) primary() semantics.Expression {
 		return semantics.InitLiteral(nil)
 	}
 
-	if p.match(semantics.NUMBER) {
+	if p.match(semantics.NUMBER, semantics.STRING) {
 		return semantics.InitLiteral(p.previous().Literal)
 	}
 	if p.match(semantics.LEFT_PAREN) {
