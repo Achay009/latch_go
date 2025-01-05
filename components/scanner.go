@@ -157,6 +157,7 @@ func (s *Scanner) scanToken() {
 			s.identifier()
 		} else {
 			// suppose to throw error here from scoop
+			// main.Report()
 		}
 
 	}

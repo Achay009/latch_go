@@ -12,6 +12,8 @@ import (
 var HadError bool = false
 var HadRuntimeError bool = false
 
+var interpreter semantics.Interpreter = *semantics.InitInterpreter()
+
 type Scoop struct {
 }
 
@@ -66,7 +68,7 @@ func (s *Scoop) run(source string) {
 		return
 	}
 
-	interpreter := semantics.InitInterpreter()
+	// interpreter := semantics.InitInterpreter()
 
 	interpreter.Interprete(statement)
 

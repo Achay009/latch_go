@@ -6,7 +6,10 @@ import (
 	"strings"
 )
 
+// var env *Environment
+
 type Interpreter struct {
+	env *Environment
 }
 
 type RuntimeError struct {
@@ -15,7 +18,7 @@ type RuntimeError struct {
 }
 
 func InitInterpreter() *Interpreter {
-	return &Interpreter{}
+	return &Interpreter{env: InitEnvironment(nil)}
 }
 
 func (e *RuntimeError) Error() string {
@@ -67,8 +70,47 @@ func (p *Interpreter) visitExpressionStatement(exprStatement *ExpressionStatemen
 
 func (p *Interpreter) visitPrintStatement(printStatement *Print) interface{} {
 	value := p.evaluate(printStatement.Expr)
-	fmt.Print(">>" + p.stringify(value) + "\n")
+	fmt.Print(">> " + p.stringify(value) + "\n")
 	return nil
+}
+
+func (p *Interpreter) visitBlockStatement(blockStatement *Block) interface{} {
+	p.executeBlockStatement(blockStatement.Statements, InitEnvironment(p.env))
+	return nil
+}
+
+func (p *Interpreter) executeBlockStatement(statements []Statement, env *Environment) {
+	previous := p.env
+	p.env = env
+	for _, statement := range statements {
+		p.execute(statement)
+	}
+
+	p.env = previous
+}
+
+func (p *Interpreter) visitVariableDeclarationStatement(varStatement *Var) interface{} {
+
+	var value interface{}
+	if varStatement.Initialiser != nil {
+		value = p.evaluate(varStatement.Initialiser)
+	}
+
+	p.env.define(varStatement.Name.Lexeme, value)
+	// fmt.Printf("This is the environment during declaration statement %v", p.env.values)
+
+	return nil
+}
+
+func (p *Interpreter) visitAssignmentExpression(assignment *Assignment) interface{} {
+	value := p.evaluate(assignment.Value)
+	p.env.assign(assignment.Name, value)
+	return value
+}
+
+func (p *Interpreter) visitVariableDeclarationExpression(varExpression *Variable) interface{} {
+	// fmt.Printf("This is the environment during declaration expression %v", p.env.values)
+	return p.env.get(varExpression.Name)
 }
 
 func (p *Interpreter) visitLiteralExpression(litExpr *Literal) interface{} {

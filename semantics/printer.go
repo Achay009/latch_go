@@ -16,6 +16,14 @@ func (a *AbstractSyntaxTreePrinter) Print(expression Expression) string {
 	return expression.Accept(a).(string)
 }
 
+func (a *AbstractSyntaxTreePrinter) visitAssignmentExpression(assgn *Assignment) interface{} {
+	return nil
+}
+
+func (a *AbstractSyntaxTreePrinter) visitVariableDeclarationExpression(variable *Variable) interface{} {
+	return nil
+}
+
 func (a *AbstractSyntaxTreePrinter) visitBinaryExpression(binaryExpression *Binary) interface{} {
 	return a.parenthesize(binaryExpression.operator.Lexeme, binaryExpression.left, binaryExpression.right)
 }

@@ -95,15 +95,58 @@ func (p *Parser) Parse() ([]semantics.Statement, error) {
 			panic(err.(error).Error())
 		}
 	}()
+	// for statements
+	// for !p.isAtEnd() {
+	// 	statements = append(statements, p.statement())
+	// }
 
 	for !p.isAtEnd() {
-		statements = append(statements, p.statement())
+		declaration, err := p.declaration()
+		if err != nil {
+			panic(err.Error())
+		}
+		statements = append(statements, declaration)
 	}
 
 	fmt.Print(fmt.Sprintf("\nstatements in Parse : %+v", statements))
 
-	// expression := p.expression()
 	return statements, nil
+}
+
+// variable declaration
+func (p *Parser) declaration() (semantics.Statement, error) {
+
+	defer func() error {
+		if err := recover(); err != nil {
+			if _, ok := err.(*parseError); ok {
+				p.synchronise()
+				// log.Println(p.Error())
+				return nil
+				// panic(p.Error())
+				// return // already handled
+			}
+			panic(err.(error).Error())
+		}
+		return nil
+	}()
+
+	if p.match(semantics.VAR) {
+		return p.varDeclaration(), nil
+	}
+
+	return p.statement(), nil
+}
+
+func (p *Parser) varDeclaration() semantics.Statement {
+	name := p.consume(semantics.IDENTIFIER, "Expect variable name.")
+
+	var initialiser semantics.Expression
+	if p.match(semantics.EQUAL) {
+		initialiser = p.expression()
+	}
+
+	p.consume(semantics.SEMICOLON, "Expect ';' after variable declaration")
+	return semantics.InitVariableDeclaration(name, initialiser)
 }
 
 func (p *Parser) statement() semantics.Statement {
@@ -111,8 +154,27 @@ func (p *Parser) statement() semantics.Statement {
 		log.Println("\nInside PRINT STATEMENT")
 		return p.printStatement()
 	}
+	if p.match(semantics.LEFT_BRACE) {
+		log.Println("\nInside BLOCK STATEMENT")
+		blockStatements := p.block()
+		return semantics.InitBlockStatement(blockStatements)
+	}
 
 	return p.expressionStatement()
+}
+
+func (p *Parser) block() []semantics.Statement {
+	statements := []semantics.Statement{}
+
+	for !p.check(semantics.RIGHT_BRACE) && !p.isAtEnd() {
+		declaration, err := p.declaration()
+		if err != nil {
+			panic("something happened when reading block statement")
+		}
+		statements = append(statements, declaration)
+	}
+	p.consume(semantics.RIGHT_BRACE, "Expect '}' after block.")
+	return statements
 }
 
 func (p *Parser) printStatement() semantics.Statement {
@@ -131,7 +193,7 @@ func (p *Parser) expressionStatement() semantics.Statement {
 }
 
 func (p *Parser) expression() semantics.Expression {
-	return p.equality()
+	return p.assignment()
 }
 
 func (p *Parser) equality() semantics.Expression {
@@ -202,12 +264,17 @@ func (p *Parser) primary() semantics.Expression {
 	if p.match(semantics.NUMBER, semantics.STRING) {
 		return semantics.InitLiteral(p.previous().Literal)
 	}
+
+	if p.match(semantics.IDENTIFIER) {
+		return semantics.InitVariable(p.previous())
+	}
+
 	if p.match(semantics.LEFT_PAREN) {
 		expr := p.expression()
 		p.consume(semantics.RIGHT_PAREN, "Expect ')' after expression")
 		return semantics.InitGrouping(expr)
 	}
-
+	// panic(p.peek(), )
 	return nil
 }
 
@@ -234,7 +301,6 @@ func (p *Parser) advance() semantics.Token {
 	}
 
 	return p.previous()
-
 }
 
 func (p *Parser) previous() semantics.Token {
@@ -262,3 +328,65 @@ func (p *Parser) check(tokenType semantics.TokenType) bool {
     * and previous() returns the most recently consumed token.
     * The latter makes it easier to use match() and then access the just-matched token.
 * */
+
+func (p *Parser) synchronise() {
+	p.advance()
+	for !p.isAtEnd() {
+		if p.previous().TokenType == semantics.SEMICOLON {
+			return
+		}
+
+		switch p.peek().TokenType {
+		case semantics.CLASS:
+		case semantics.FUN:
+		case semantics.VAR:
+		case semantics.FOR:
+		case semantics.IF:
+		case semantics.WHILE:
+		case semantics.PRINT:
+		case semantics.RETURN:
+			return
+
+		}
+		p.advance()
+	}
+}
+
+func (p *Parser) assignment() semantics.Expression {
+	expr := p.equality()
+
+	if p.match(semantics.EQUAL) {
+		equals := p.previous()
+		value := p.assignment()
+
+		if variable, ok := expr.(*semantics.Variable); ok {
+			// name := semantics.Variable(expr.(*semantics.Variable))
+			return &semantics.Assignment{Name: variable.Name, Value: value}
+		}
+		p.error(equals, "Invalid assignment type")
+	}
+
+	return expr
+}
+
+// NOTES
+// Understanding variable Declaration as a statement and
+// also the assignment and accessing of variable as an expression
+// program        → declaration* EOF ;
+
+// declaration    → varDecl
+//                | statement ;
+
+// statement      → exprStmt
+//                | printStmt ;
+
+// Expression for variable declaration
+// primary        → "true" | "false" | "nil"
+//                | NUMBER | STRING
+//                | "(" expression ")"
+//                | IDENTIFIER ;
+
+// exprerssion tree turns into the below after variable assignment is added
+// expression     → assignment ;
+// assignment     → IDENTIFIER "=" assignment
+//                | equality ;

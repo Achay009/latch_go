@@ -1,9 +1,13 @@
 package semantics
 
 type StatementVisitor interface {
-	visitExpressionStatement(expression *ExpressionStatement) interface{}
+	visitExpressionStatement(statement *ExpressionStatement) interface{}
 
-	visitPrintStatement(expression *Print) interface{}
+	visitPrintStatement(statement *Print) interface{}
+
+	visitVariableDeclarationStatement(statement *Var) interface{}
+
+	visitBlockStatement(block *Block) interface{}
 }
 
 type Statement interface {
@@ -38,6 +42,23 @@ func InitExpressionStatement(expr Expression) *ExpressionStatement {
 	}
 }
 
+// var declaration statement
+type Var struct {
+	Name        Token
+	Initialiser Expression
+}
+
+func (v *Var) Accept(visitor StatementVisitor) interface{} {
+	return visitor.visitVariableDeclarationStatement(v)
+}
+
+func InitVariableDeclaration(token Token, expr Expression) *Var {
+	return &Var{
+		Initialiser: expr,
+		Name:        token,
+	}
+}
+
 //Definittion
 // program        → statement* EOF ;
 
@@ -46,3 +67,24 @@ func InitExpressionStatement(expr Expression) *ExpressionStatement {
 
 // exprStmt       → expression ";" ;
 // printStmt      → "print" expression ";" ;
+
+// Defnining Block statement
+// statement      → exprStmt
+//                | printStmt
+//                | block ;
+
+// block          → "{" declaration* "}" ;
+
+type Block struct {
+	Statements []Statement
+}
+
+func (v *Block) Accept(visitor StatementVisitor) interface{} {
+	return visitor.visitBlockStatement(v)
+}
+
+func InitBlockStatement(states []Statement) *Block {
+	return &Block{
+		Statements: states,
+	}
+}
