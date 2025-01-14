@@ -108,7 +108,7 @@ func (p *Parser) Parse() ([]semantics.Statement, error) {
 		statements = append(statements, declaration)
 	}
 
-	fmt.Print(fmt.Sprintf("\nstatements in Parse : %+v", statements))
+	// fmt.Print(fmt.Sprintf("\nstatements in Parse : %+v", statements))
 
 	return statements, nil
 }
@@ -151,16 +151,33 @@ func (p *Parser) varDeclaration() semantics.Statement {
 
 func (p *Parser) statement() semantics.Statement {
 	if p.match(semantics.PRINT) {
-		log.Println("\nInside PRINT STATEMENT")
+		// log.Println("\nInside PRINT STATEMENT")
 		return p.printStatement()
 	}
+	if p.match(semantics.IF) {
+		return p.ifStatement()
+	}
 	if p.match(semantics.LEFT_BRACE) {
-		log.Println("\nInside BLOCK STATEMENT")
+		// log.Println("\nInside BLOCK STATEMENT")
 		blockStatements := p.block()
 		return semantics.InitBlockStatement(blockStatements)
 	}
 
 	return p.expressionStatement()
+}
+
+func (p *Parser) ifStatement() semantics.Statement {
+	var elseBranch semantics.Statement
+	p.consume(semantics.LEFT_PAREN, "Expect '{' after 'if'.")
+	condition := p.expression()
+	p.consume(semantics.RIGHT_PAREN, "Expect '}' after 'if'.")
+
+	thenBranch := p.statement()
+	if p.match(semantics.ELSE) {
+		elseBranch = p.statement()
+	}
+
+	return semantics.InitIFStatement(condition, thenBranch, elseBranch)
 }
 
 func (p *Parser) block() []semantics.Statement {
@@ -180,14 +197,14 @@ func (p *Parser) block() []semantics.Statement {
 func (p *Parser) printStatement() semantics.Statement {
 	expr := p.expression()
 	// log.Printf("inside PRINT RULE [%v]", fmt.Sprint(expr))
-	fmt.Printf(fmt.Sprintf("\ninside PRINT RULE [%+v]\n", expr))
+	// fmt.Printf(fmt.Sprintf("\ninside PRINT RULE [%+v]\n", expr))
 	p.consume(semantics.SEMICOLON, "Expect ';' after value")
 	return semantics.InitPrintStatement(expr)
 }
 
 func (p *Parser) expressionStatement() semantics.Statement {
 	expr := p.expression()
-	fmt.Printf(fmt.Sprintf("\ninside EXPR RULE [%+v]\n", expr))
+	// fmt.Printf(fmt.Sprintf("\ninside EXPR RULE [%+v]\n", expr))
 	p.consume(semantics.SEMICOLON, "Expect ';' after expression")
 	return semantics.InitExpressionStatement(expr)
 }

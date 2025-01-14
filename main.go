@@ -58,7 +58,7 @@ func (s *Scoop) run(source string) {
 	// expression, err := parser.Parse()
 	statement, err := parser.Parse()
 	// log.Println("Done with parsing ")
-	fmt.Print(fmt.Sprintf("\nstatements from Parse : %+v", statement))
+	// fmt.Print(fmt.Sprintf("\nstatements from Parse : %+v", statement))
 
 	if err != nil {
 		log.Print(fmt.Sprintf("Error from Parser  : %v", err.Error()))

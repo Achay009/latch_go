@@ -8,6 +8,8 @@ type StatementVisitor interface {
 	visitVariableDeclarationStatement(statement *Var) interface{}
 
 	visitBlockStatement(block *Block) interface{}
+
+	visitIFStatement(conditional *If) interface{}
 }
 
 type Statement interface {
@@ -86,5 +88,23 @@ func (v *Block) Accept(visitor StatementVisitor) interface{} {
 func InitBlockStatement(states []Statement) *Block {
 	return &Block{
 		Statements: states,
+	}
+}
+
+type If struct {
+	Condition  Expression
+	ThenBranch Statement
+	ElseBranch Statement
+}
+
+func (i *If) Accept(visitor StatementVisitor) interface{} {
+	return visitor.visitIFStatement(i)
+}
+
+func InitIFStatement(condition Expression, thenBranch Statement, elseBranch Statement) *If {
+	return &If{
+		Condition:  condition,
+		ThenBranch: thenBranch,
+		ElseBranch: elseBranch,
 	}
 }

@@ -2,7 +2,7 @@ package semantics
 
 import (
 	"fmt"
-	"log"
+	// "log"
 	"strings"
 )
 
@@ -36,7 +36,7 @@ func (p *Interpreter) error(token Token, message string) error {
 // }
 
 func (p *Interpreter) Interprete(expr []Statement) {
-	log.Println("\ninside interpreter now...")
+	// log.Println("\ninside interpreter now...")
 	for _, statement := range expr {
 		p.execute(statement)
 	}
@@ -44,6 +44,15 @@ func (p *Interpreter) Interprete(expr []Statement) {
 
 func (p *Interpreter) execute(statement Statement) {
 	statement.Accept(p)
+}
+
+func (p *Interpreter) visitIFStatement(statement *If) interface{} {
+	if p.isTruthy(statement.Condition) {
+		p.execute(statement.ThenBranch)
+	} else if statement.ElseBranch != nil {
+		p.execute(statement.ElseBranch)
+	}
+	return nil
 }
 
 func (p *Interpreter) stringify(objectA interface{}) string {
